@@ -1,5 +1,5 @@
 use anyhow::{Context, Result};
-use clap::Parser;
+//use clap::Parser;
 use futures::future::{select, Either};
 use futures::StreamExt;
 use libp2p::{
@@ -27,6 +27,7 @@ use std::{
     time::{Duration, Instant},
 };
 use tokio::fs;
+use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
 
 const TICK_INTERVAL: Duration = Duration::from_secs(15);
 const KADEMLIA_PROTOCOL_NAME: &[u8] = b"/universal-connectivity/lan/kad/1.0.0";
@@ -35,74 +36,28 @@ const PORT_QUIC: u16 = 9091;
 const LOCAL_KEY_PATH: &str = "./local_key";
 const LOCAL_CERT_PATH: &str = "./cert.pem";
 
-#[derive(Debug, Parser)]
-#[clap(name = "universal connectivity rust peer")]
-struct Opt {
-    /// Address to listen on.
-    #[clap(long)]
-    listen_address: Option<String>,
+/* 
+    create App struct w/
+    - the loop
+    - the node data
+    ..continue    
 
-    /// Address of a remote peer to connect to.
-    #[clap(long)]
-    remote_address: Option<Multiaddr>,
+*/
+
+struct AppState {
+    peer_multiaddr: Option<String>,
 }
 
-/// An example WebRTC peer that will accept connections
-#[tokio::main]
-async fn main() -> Result<()> {
-    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
-
-    let opt = Opt::parse();
-    let local_key = read_or_create_identity(Path::new(LOCAL_KEY_PATH))
-        .await
-        .context("Failed to read identity")?;
-    let webrtc_cert = read_or_create_certificate(Path::new(LOCAL_CERT_PATH))
-        .await
-        .context("Failed to read certificate")?;
-
-    let mut swarm = create_swarm(local_key, webrtc_cert)?;
-
-    let address_webrtc = Multiaddr::from(Ipv4Addr::UNSPECIFIED)
-        .with(Protocol::Udp(PORT_WEBRTC))
-        .with(Protocol::WebRTCDirect);
-
-    let address_quic = Multiaddr::from(Ipv4Addr::UNSPECIFIED)
-        .with(Protocol::Udp(PORT_QUIC))
-        .with(Protocol::QuicV1);
-
-    swarm
-        .listen_on(address_webrtc.clone())
-        .expect("listen on webrtc");
-    swarm
-        .listen_on(address_quic.clone())
-        .expect("listen on quic");
-
-    if let Some(listen_address) = opt.listen_address {
-        // match on whether the listen address string is an IP address or not (do nothing if not)
-        match listen_address.parse::<IpAddr>() {
-            Ok(ip) => {
-                let opt_address_webrtc = Multiaddr::from(ip)
-                    .with(Protocol::Udp(PORT_WEBRTC))
-                    .with(Protocol::WebRTCDirect);
-                swarm.add_external_address(opt_address_webrtc, AddressScore::Infinite);
-            }
-            Err(_) => {
-                debug!(
-                    "listen_address provided is not an IP address: {}",
-                    listen_address
-                )
-            }
-        }
+#[get("/")]
+async fn hello(data: web::Data<AppState>) -> impl Responder {
+    if let Some(addr) = &data.peer_multiaddr {
+        HttpResponse::Ok().body(addr.to_string()) 
+    } else {
+        HttpResponse::Ok().body(String::from("Libp2p is not running"))
     }
+}
 
-    if let Some(remote_address) = opt.remote_address {
-        swarm
-            .dial(remote_address)
-            .expect("a valid remote address to be provided");
-    }
-
-    let mut tick = futures_timer::Delay::new(TICK_INTERVAL);
-
+async fn pubsub_client(mut swarm: Swarm<Behaviour>, mut tick: futures_timer::Delay) -> Result<()> {
     let now = Instant::now();
     loop {
         match select(swarm.next(), &mut tick).await {
@@ -229,6 +184,58 @@ async fn main() -> Result<()> {
             }
         }
     }
+}
+
+/// An example WebRTC peer that will accept connections
+#[tokio::main]
+async fn main() -> Result<()> {
+    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
+
+    //let opt = Opt::parse();
+    let local_key = read_or_create_identity(Path::new(LOCAL_KEY_PATH))
+        .await
+        .context("Failed to read identity")?;
+    let webrtc_cert = read_or_create_certificate(Path::new(LOCAL_CERT_PATH))
+        .await
+        .context("Failed to read certificate")?;
+
+    let mut swarm = create_swarm(local_key, webrtc_cert)?;
+    
+    let address_webrtc = Multiaddr::from(Ipv4Addr::UNSPECIFIED)
+        .with(Protocol::Udp(PORT_WEBRTC))
+        .with(Protocol::WebRTCDirect);
+
+    let address_quic = Multiaddr::from(Ipv4Addr::UNSPECIFIED)
+        .with(Protocol::Udp(PORT_QUIC))
+        .with(Protocol::QuicV1);
+
+    swarm
+        .listen_on(address_webrtc.clone())
+        .expect("listen on webrtc");
+    swarm
+        .listen_on(address_quic.clone())
+        .expect("listen on quic");
+
+
+    let p2p_address = address_webrtc.with(Protocol::P2p((*swarm.local_peer_id()).into()));
+
+    let mut tick = futures_timer::Delay::new(TICK_INTERVAL);
+// the loop has to run alongside the server
+    tokio::spawn(pubsub_client(swarm, tick));
+
+    HttpServer::new(move || {
+        App::new()
+            .app_data(web::Data::new(AppState {
+                peer_multiaddr: Some(p2p_address.to_string())
+            }))
+            .service(hello)
+            //.service(echo)
+            //.route("/hey", web::get().to(manual_hello))
+    })
+    .bind(("127.0.0.1", 8080))?
+    .run()
+    .await;
+    Ok(())
 }
 
 #[derive(NetworkBehaviour)]
