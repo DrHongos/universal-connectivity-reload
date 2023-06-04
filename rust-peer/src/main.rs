@@ -1,3 +1,5 @@
+pub mod constants;
+
 use anyhow::{Context, Result};
 //use clap::Parser;
 use futures::future::{select, Either};
@@ -18,52 +20,54 @@ use libp2p_quic as quic;
 use libp2p_webrtc as webrtc;
 use libp2p_webrtc::tokio::Certificate;
 use log::{debug, error, info, warn};
-use std::net::{IpAddr, Ipv4Addr};
+use std::net::{Ipv4Addr}; //IpAddr, 
 use std::path::Path;
 use std::{
     borrow::Cow,
     collections::hash_map::DefaultHasher,
     hash::{Hash, Hasher},
     time::{Duration, Instant},
+    sync::Mutex
 };
 use tokio::fs;
-use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
-
-const TICK_INTERVAL: Duration = Duration::from_secs(15);
-const KADEMLIA_PROTOCOL_NAME: &[u8] = b"/universal-connectivity/lan/kad/1.0.0";
-const PORT_WEBRTC: u16 = 9090;
-const PORT_QUIC: u16 = 9091;
-const LOCAL_KEY_PATH: &str = "./local_key";
-const LOCAL_CERT_PATH: &str = "./cert.pem";
-
-/* 
-    create App struct w/
-    - the loop
-    - the node data
-    ..continue    
-
-*/
+use actix_web::{get, web, App, HttpResponse, HttpServer, Responder}; //, post
+use constants::{
+    TICK_INTERVAL,
+    KADEMLIA_PROTOCOL_NAME,
+    PORT_WEBRTC,
+    PORT_QUIC,
+    LOCAL_KEY_PATH,
+    LOCAL_CERT_PATH
+};
 
 struct AppState {
-    peer_multiaddr: Option<String>,
+    peer_multiaddr: Mutex<Vec<String>>, // probably should be Mutex (Vec<String>)
 }
 
 #[get("/")]
 async fn hello(data: web::Data<AppState>) -> impl Responder {
-    if let Some(addr) = &data.peer_multiaddr {
-        HttpResponse::Ok().body(addr.to_string()) 
-    } else {
-        HttpResponse::Ok().body(String::from("Libp2p is not running"))
-    }
+    let mg = &data.peer_multiaddr.lock().unwrap().clone();
+//    match *mg.len() {
+//        Some(ref addr) => 
+    let addr = mg;    
+    HttpResponse::Ok().body(
+        addr.join(", ")
+    )//,
+//        None => HttpResponse::Ok().body(String::from("Libp2p is not running"))
+//    }
 }
 
-async fn pubsub_client(mut swarm: Swarm<Behaviour>, mut tick: futures_timer::Delay) -> Result<()> {
+async fn pubsub_client(mut swarm: Swarm<Behaviour>, data: web::Data<AppState>) -> Result<()> {
+    let mut tick = futures_timer::Delay::new(TICK_INTERVAL);    // here? or in thread?
     let now = Instant::now();
     loop {
         match select(swarm.next(), &mut tick).await {
             Either::Left((event, _)) => match event.unwrap() {
                 SwarmEvent::NewListenAddr { address, .. } => {
                     let p2p_address = address.with(Protocol::P2p((*swarm.local_peer_id()).into()));
+                    // change app state
+                    let mut peer_id = data.peer_multiaddr.lock().unwrap();
+                    peer_id.push(p2p_address.to_string()); 
                     info!("Listen p2p address: {p2p_address:?}");
                 }
                 SwarmEvent::ConnectionEstablished { peer_id, .. } => {
@@ -186,7 +190,6 @@ async fn pubsub_client(mut swarm: Swarm<Behaviour>, mut tick: futures_timer::Del
     }
 }
 
-/// An example WebRTC peer that will accept connections
 #[tokio::main]
 async fn main() -> Result<()> {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
@@ -217,25 +220,26 @@ async fn main() -> Result<()> {
         .expect("listen on quic");
 
 
-    let p2p_address = address_webrtc.with(Protocol::P2p((*swarm.local_peer_id()).into()));
+//    let p2p_address = address_webrtc.with(Protocol::P2p((*swarm.local_peer_id()).into())); // nope
 
-    let mut tick = futures_timer::Delay::new(TICK_INTERVAL);
-// the loop has to run alongside the server
-    tokio::spawn(pubsub_client(swarm, tick));
+    let app_data_init = web::Data::new(AppState {
+        peer_multiaddr: Mutex::new(Vec::new())//Some(p2p_address.to_string())
+    });
+    // An example WebRTC peer that will accept connections
+    // the loop has to run alongside the server
+    tokio::spawn(pubsub_client(swarm, app_data_init.clone()));
 
     HttpServer::new(move || {
         App::new()
-            .app_data(web::Data::new(AppState {
-                peer_multiaddr: Some(p2p_address.to_string())
-            }))
+            .app_data(app_data_init.clone())
             .service(hello)
             //.service(echo)
             //.route("/hey", web::get().to(manual_hello))
     })
     .bind(("127.0.0.1", 8080))?
     .run()
-    .await;
-    Ok(())
+    .await
+    .context("Failed running server")
 }
 
 #[derive(NetworkBehaviour)]
