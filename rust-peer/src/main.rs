@@ -29,6 +29,7 @@ use std::{
     time::{Duration, Instant},
     sync::Mutex
 };
+use serde::Serialize;
 use tokio::fs;
 use actix_web::{get, web, App, HttpResponse, HttpServer, Responder}; //, post
 use constants::{
@@ -44,14 +45,20 @@ struct AppState {
     peer_multiaddr: Mutex<Vec<String>>, // probably should be Mutex (Vec<String>)
 }
 
+#[derive(Serialize)]
+struct Addresses {
+	listening: Vec<String>
+}
+
 #[get("/")]
 async fn hello(data: web::Data<AppState>) -> impl Responder {
     let mg = &data.peer_multiaddr.lock().unwrap().clone();
 //    match *mg.len() {
 //        Some(ref addr) => 
-    let addr = mg;    
+//    let res = serde_json::to_string(&mg).expect("Failed to serialize response");
+    
     HttpResponse::Ok().body(
-        addr.join(", ")
+        mg.join(",")
     )//,
 //        None => HttpResponse::Ok().body(String::from("Libp2p is not running"))
 //    }
@@ -164,6 +171,8 @@ async fn pubsub_client(mut swarm: Swarm<Behaviour>, data: web::Data<AppState>) -
             },
             Either::Right(_) => {
                 tick = futures_timer::Delay::new(TICK_INTERVAL);
+                info!("Not doing repeated messages.. for testing")
+/* 
 
                 debug!(
                     "external addrs: {:?}",
@@ -185,6 +194,7 @@ async fn pubsub_client(mut swarm: Swarm<Behaviour>, data: web::Data<AppState>) -
                 ) {
                     error!("Failed to publish periodic message: {err}")
                 }
+ */
             }
         }
     }
