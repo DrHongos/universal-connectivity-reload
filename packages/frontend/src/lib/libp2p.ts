@@ -81,7 +81,7 @@ export async function startLibp2p() {
 
   libp2p.peerStore.addEventListener('change:multiaddrs', ({detail: {peerId, multiaddrs}}) => {
 
-    console.log(`changed multiaddrs: peer ${peerId.toString()} multiaddrs: ${multiaddrs}`)
+//    console.log(`changed multiaddrs: peer ${peerId.toString()} multiaddrs: ${multiaddrs}`)
     setWebRTCRelayAddress(multiaddrs, libp2p.peerId.toString())
   })
 
@@ -106,7 +106,7 @@ export const setWebRTCRelayAddress = (maddrs: Multiaddr[], peerId: string) => {
 
       const webRTCrelayAddress = multiaddr(maddr.toString() + '/webrtc/p2p/' + peerId)
 
-      console.log(`Listening on '${webRTCrelayAddress.toString()}'`)
+//      console.log(`Listening on '${webRTCrelayAddress.toString()}'`)
     }
   })
 }
