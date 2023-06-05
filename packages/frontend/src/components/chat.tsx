@@ -1,17 +1,16 @@
 import { useLibp2pContext } from '@/context/ctx'
 import React, { useCallback, useEffect, useState } from 'react'
 import { Message } from '@libp2p/interface-pubsub'
-import { CHAT_TOPIC } from '@/lib/constants'
+//import { CHAT_TOPIC } from '@/lib/constants'
 import { createIcon } from '@download/blockies'
 import { ChatMessage, useChatContext } from '../context/chat-ctx'
 
 
 interface MessageProps extends ChatMessage { }
 
-function Message({ msg, from, peerId }: MessageProps) {
+function Message({ msg, from, peerId, topic }: MessageProps) {
   const msgref = React.useRef<HTMLLIElement>(null)
   const { libp2p } = useLibp2pContext()
-
 
   useEffect(() => {
     const icon = createIcon({
@@ -36,17 +35,22 @@ function Message({ msg, from, peerId }: MessageProps) {
         <div className="block">
           {msg}
           <p className="italic text-gray-400">{peerId !== libp2p.peerId.toString() ? `from: ${peerId.slice(-4)}` : null} </p>
+          <p className="italic text-gray-900">{topic} </p>
         </div>
       </div>
     </li>
   )
 }
 
-export default function ChatContainer() {
+interface ChatProps {
+  topic: string
+}
+
+export default function ChatContainer({topic}: ChatProps) {
   const { libp2p } = useLibp2pContext()
   const { messageHistory, setMessageHistory } = useChatContext();
   const [input, setInput] = useState<string>('')
-
+  
   // Effect hook to subscribe to pubsub events and update the message state hook
   useEffect(() => {
     const messageCB = (evt: CustomEvent<Message>) => {
@@ -58,7 +62,7 @@ export default function ChatContainer() {
 
       // Append signed messages, otherwise discard
       if (evt.detail.type === 'signed') {
-        setMessageHistory([...messageHistory, { msg, from: 'other', peerId: evt.detail.from.toString() }])
+        setMessageHistory([...messageHistory, { msg, from: 'other', peerId: evt.detail.from.toString(), topic: evt.detail.topic }])
       }
     }
 
@@ -76,11 +80,11 @@ export default function ChatContainer() {
 
     console.log(
       'peers in gossip:',
-      libp2p.pubsub.getSubscribers(CHAT_TOPIC).toString(),
+      libp2p.pubsub.getSubscribers(topic).toString(),
     )
 
     const res = await libp2p.pubsub.publish(
-      CHAT_TOPIC,
+      topic,
       new TextEncoder().encode(input),
     )
     console.log(
@@ -90,7 +94,7 @@ export default function ChatContainer() {
 
     const myPeerId = libp2p.peerId.toString()
 
-    setMessageHistory([...messageHistory, { msg: input, from: 'me', peerId: myPeerId }])
+    setMessageHistory([...messageHistory, { msg: input, from: 'me', peerId: myPeerId, topic }])
     setInput('')
   }, [input, messageHistory, setInput, libp2p, setMessageHistory])
 
@@ -140,8 +144,8 @@ export default function ChatContainer() {
             <div className="relative w-full p-6 overflow-y-auto h-[40rem] bg-gray-100">
               <ul className="space-y-2">
                 {/* messages start */}
-                {messageHistory.map(({ msg, from, peerId }, idx) => (
-                  <Message key={idx} msg={msg} from={from} peerId={peerId} />
+                {messageHistory.map(({ msg, from, peerId, topic }, idx) => (
+                  <Message key={idx} msg={msg} from={from} peerId={peerId} topic={topic}/>
                 ))}
                 {/* messages end */}
               </ul>

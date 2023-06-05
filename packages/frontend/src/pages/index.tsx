@@ -10,6 +10,7 @@ import { multiaddr } from '@multiformats/multiaddr'
 import { connectToMultiaddr } from '../lib/libp2p'
 import ChatContainer from '@/components/chat'
 import { createIcon } from '@download/blockies'
+import { CHAT_TOPIC } from '@/lib/constants'
 
 type PeerProtoTuple = {
   peerId: string
@@ -71,8 +72,12 @@ export default function Home() {
   const { libp2p } = useLibp2pContext()
   const { peerStats, setPeerStats } = usePeerContext()
   const [maddr, setMultiaddr] = useState('')
-
+  const [topicToSuscribe, setTopicToSuscribe] = useState<string | null>(null)
+  const [topicsList, setTopicsList] = useState<string[]>([])
+  const [topicSelected, setTopicSelected] = useState<string>(CHAT_TOPIC)
+  const [peersListOpen, setPeersListOpen] = useState<boolean>(false)
   const msgref = useRef<HTMLLIElement>(null)
+
   useEffect(() => {
     const icon = createIcon({
       seed: libp2p.peerId,
@@ -85,6 +90,7 @@ export default function Home() {
     if (childrenCount && childrenCount < 2) {
       msgref.current?.insertBefore(icon, msgref.current?.firstChild)
     }
+    updateTopics()
   }, [libp2p])
 
   useEffect(() => {
@@ -99,6 +105,13 @@ export default function Home() {
       libp2p.removeEventListener('peer:connect', peerConnectedCB)
     }
   }, [libp2p, peerStats, setPeerStats])
+
+  const updateTopics = () => {
+    let topics = libp2p.pubsub.getTopics()
+    if (topics != topicsList) {
+      setTopicsList(topics)
+    }
+  }
 
   const getFormattedConnections = (connections: Connection[]): PeerProtoTuple[] => {
     const protoNames: Map<string, string[]> = new Map()
@@ -148,6 +161,18 @@ export default function Home() {
     },
     [setMultiaddr],
   )
+  const handleTopicChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setTopicToSuscribe(e.target.value)
+    },
+    [setTopicToSuscribe],
+  )
+  const suscribeToTopic = () => {
+    if (topicToSuscribe) {
+      libp2p.pubsub.subscribe(topicToSuscribe)
+      updateTopics()
+    }
+  }
 
   return (
     <>
@@ -160,22 +185,9 @@ export default function Home() {
       <main className="min-h-full">
 {/*         <Nav /> */}
         <div className="py-10">
-          <header>
-            <div className="mx-auto max-w-7xl px-2 sm:px-6 lg:px-8">
-              <h1 className="text-3xl font-bold leading-tight tracking-tight text-gray-900 flex flex-row">
-                <p className="mr-4">Universal Connectivity</p>
-                <Image
-                  src="/libp2p-hero.svg"
-                  alt="libp2p logo"
-                  height="46"
-                  width="46"
-                />
-              </h1>
-            </div>
-          </header>
           <main>
             <div style={{display: "flex"}}>
-              <div style={{width: '30%'}}>
+              <div style={{width: '60%'}}>
               <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                 <h3 className="text-xl">
                   {' '}
@@ -185,15 +197,6 @@ export default function Home() {
                   peerId={libp2p.peerId.toString()}
                   protocols={[]}
                 />
-                <h3 className="text-xl">
-                  {' '}
-                  Your topics
-                </h3>
-                <ul>
-                  {libp2p.pubsub.getTopics().map((d) => 
-                    <li>{d}</li>
-                  )}
-                </ul>
 {/* make it an expandable tool
                 <div className="my-6 w-1/2">
                   <label
@@ -226,29 +229,91 @@ export default function Home() {
                 <div>
                   {peerStats.peerIds.length > 0 ? (
                     <>
-                      <h3 className="text-xl">
+                      <h3 
+                        className="text-xl"
+                        onClick={() => setPeersListOpen(!peersListOpen)}
+                        style={{
+                          margin: "15px",
+                          cursor: "pointer"
+                        }}
+                      >
                         {' '}
                         Connected peers ({getFormattedConnections(peerStats.connections).length}){' '}
                       </h3>
-                      <pre className="px-2">
-                        {getFormattedConnections(peerStats.connections)
-                          .map(
-                            (pair) =>
-                              <PeerData
-                                key={pair.peerId}
-                                peerId={pair.peerId}
-                                protocols={pair.protocols}
-                              />                            
-                          )}
-                      </pre>
+                      {peersListOpen &&
+                        <pre className="px-2">
+                          {getFormattedConnections(peerStats.connections)
+                            .map(
+                              (pair) =>
+                                <PeerData
+                                  key={pair.peerId}
+                                  peerId={pair.peerId}
+                                  protocols={pair.protocols}
+                                />                            
+                            )}
+                        </pre>
+                      }
                     </>
                   ) : null}
                 </div>
+                <div
+                  style={{border: "1px solid gray", padding: "10px", borderRadius: "10px"}}
+                >
+                  <h3 className="text-xl">
+                    {' '}
+                    Your topics
+                  </h3>
+                  <ul>
+                    {topicsList.map((d) => 
+                      <li
+                        style={{
+                          backgroundColor: d == topicSelected ? "lightgreen" : "white",
+                          border: d == topicSelected ? "darkgreen" : "lightgray",
+                          fontWeight: d == topicSelected ? 900 : 700,
+                          padding: "10px",
+                          justifyContent: "center"
+                        }}
+                        onClick={() => setTopicSelected(d)}
+                      >
+                        {d}{' '}
+                        -{' '}
+                        ({libp2p.pubsub.getSubscribers(d).length/* does not update */})
+                      </li>
+                    )}
+                  </ul>
+                  <hr style={{marginBottom: "15px"}}></hr>
+                  <input 
+                    style={{
+                      borderRadius: "10px",
+                      padding: "5px",
+                      marginRight: "15px",
+                      border: "1px solid magenta",
+                      width: "40%"
+                    }}
+                    onChange={handleTopicChange}
+                  />
+                  <button
+                    disabled={!topicToSuscribe}
+                    onClick={() => suscribeToTopic()}
+                  >
+                    {topicToSuscribe ? "Suscribe!" : "Add a topic to suscribe"}
+                  </button>
+                </div>
+                <Image
+                  src="/libp2p-hero.svg"
+                  alt="libp2p logo"
+                  height="240"
+                  width="240"
+                  style={{margin: "auto", marginTop: "15px"}}
+                />
+
               </div>
 
               </div>
               <div style={{width: '70%'}}>
-                <ChatContainer />
+                <ChatContainer
+                  topic={topicSelected}
+                />
               </div>
             </div>
           </main>

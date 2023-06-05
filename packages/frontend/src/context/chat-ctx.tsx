@@ -3,7 +3,8 @@ import React, { createContext, useContext, useState } from 'react';
 export interface ChatMessage {
 	msg: string
 	from: 'me' | 'other'
-	peerId: string
+	peerId: string,
+	topic: string
 }
 
 export interface ChatContextInterface {
