@@ -13,21 +13,21 @@ use libp2p::{
     multiaddr::{Multiaddr, Protocol},
     relay,
     swarm::{
-        keep_alive, AddressRecord, AddressScore, NetworkBehaviour, Swarm, SwarmBuilder, SwarmEvent,
+        keep_alive, AddressScore, NetworkBehaviour, Swarm, SwarmBuilder, SwarmEvent,
     },
     PeerId, Transport,
 };
 use libp2p_quic as quic;
 use libp2p_webrtc as webrtc;
 use libp2p_webrtc::tokio::Certificate;
-use log::{debug, error, info, warn};
+use log::{debug, info, warn};
 use std::net::{Ipv4Addr}; //IpAddr, 
 use std::path::Path;
 use std::{
     borrow::Cow,
     collections::hash_map::DefaultHasher,
     hash::{Hash, Hasher},
-    time::{Duration, Instant},
+    time::{Duration/* , Instant */},
     sync::Mutex
 };
 use serde::Serialize;
@@ -54,20 +54,14 @@ struct Addresses {
 #[get("/")]
 async fn hello(data: web::Data<AppState>) -> impl Responder {
     let mg = &data.peer_multiaddr.lock().unwrap().clone();
-//    match *mg.len() {
-//        Some(ref addr) => 
-//    let res = serde_json::to_string(&mg).expect("Failed to serialize response");
-    
     HttpResponse::Ok().body(
         mg.join(",")
-    )//,
-//        None => HttpResponse::Ok().body(String::from("Libp2p is not running"))
-//    }
+    )
 }
 
 async fn pubsub_client(mut swarm: Swarm<Behaviour>, data: web::Data<AppState>) -> Result<()> {
     let mut tick = futures_timer::Delay::new(TICK_INTERVAL);    // here? or in thread?
-    let now = Instant::now();
+//    let now = Instant::now();
     loop {
         match select(swarm.next(), &mut tick).await {
             Either::Left((event, _)) => match event.unwrap() {
@@ -249,7 +243,7 @@ async fn main() -> Result<()> {
             //.service(echo)
             //.route("/hey", web::get().to(manual_hello))
     })
-    .bind(("127.0.0.1", 8080))?
+    .bind(("127.0.0.1", 8080))? // must be changed in server to "0.0.0.0"
     .run()
     .await
     .context("Failed running server")

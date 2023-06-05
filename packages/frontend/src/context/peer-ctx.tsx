@@ -44,13 +44,12 @@ export const PeerProvider = ({ children }: { children: ReactNode }) => {
 
 	useEffect(() => {
 		async function get_rust_node_multiaddr() {
-			fetch("http://localhost:8080/", {})
-				.then(response => response.text())	// nothing.. futile
+			fetch("http://opinologos.xyz:8080/", {})
+				.then(response => response.text())
 				.then(data => {
-					console.log(data);
 					let data_p = data.split(",");
 					if (data_p.length > 0) {
-						console.log(`setting rust node addresses ${data_p}`)
+//						console.log(`setting rust node peer listening addresses ${data_p}`)
 						setRustNodeMultiaddr(data_p)			
 					}
 				})
@@ -58,20 +57,19 @@ export const PeerProvider = ({ children }: { children: ReactNode }) => {
 				console.error('Error:', error);
 				});
 		}
-		// query the server,
-		console.log("performing query")
-		// filter response
-		// dial the correct one
+		async function connect(addr:Multiaddr) {
+			await libp2p.dial(addr)
+		}
 		if (!rustNodeMultiaddr) {
 			get_rust_node_multiaddr()
 		} else {
 			// check if we are already connected
-			let correct_multiaddr = rustNodeMultiaddr[2]; //CAREFUL
-
-			if (peerStats.peerIds.length === 0) {				
-				// else dial()
+			let correct_multiaddr = rustNodeMultiaddr[2];			 //CAREFUL
+			console.log(`gonna connect with ${correct_multiaddr}`)
+			if (peerStats.peerIds.length === 0) {
 				let multiaddre = multiaddr(correct_multiaddr)
-				libp2p.dial(multiaddre)
+				console.log("dialing")
+				connect(multiaddre)
 			}
 		}
 	}, [rustNodeMultiaddr])

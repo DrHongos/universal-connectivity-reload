@@ -197,7 +197,6 @@ export default function Home() {
                   peerId={libp2p.peerId.toString()}
                   protocols={[]}
                 />
-{/* make it an expandable tool
                 <div className="my-6 w-1/2">
                   <label
                     htmlFor="peer-id"
@@ -225,7 +224,7 @@ export default function Home() {
                     Connect to multiaddr
                   </button>
                 </div>
- */}
+
                 <div>
                   {peerStats.peerIds.length > 0 ? (
                     <>
