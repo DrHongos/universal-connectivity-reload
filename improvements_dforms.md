@@ -1,8 +1,9 @@
 Start from universal-connectivity-reload
 
     qUIcky 
-    - refactor PeerData (and soon TopicData)
+    - PeerData 
         - add protocol and multiaddr to peers (get in clipboard)
+    - TopicData
         - topic data should include "unsuscribe" and info about suscribers
 
     - gossip channels                            <
