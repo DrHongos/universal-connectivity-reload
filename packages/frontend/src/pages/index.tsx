@@ -1,13 +1,13 @@
 import Head from 'next/head'
 import { useLibp2pContext } from '@/context/ctx'
-import { useCallback, useEffect, useState, useRef } from 'react'
+import { useState } from 'react'
 import Image from 'next/image'
 import ChatContainer from '@/components/chat'
 import PeerInfo from '@/components/peerInfo'
 import PeerControl from '@/components/peerControl'
 import TopicsControl from '@/components/topicsControl'
 import { CHAT_TOPIC } from '@/lib/constants'
-
+import Account from '@/components/account'
 
 export default function Home() {
   const { libp2p } = useLibp2pContext()
@@ -27,6 +27,7 @@ export default function Home() {
             <div style={{display: "flex"}}>
               <div style={{width: '60%'}}>
               <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+                <Account />
                 <h3 className="text-xl">
                   {' '}
                   Your node

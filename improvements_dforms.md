@@ -1,17 +1,20 @@
 Start from universal-connectivity-reload
 
-    qUIcky 
+    Frontend
     - PeerData 
-        - add protocol and multiaddr to peers (get in clipboard)
+        - add protocol and multiaddr to peers (get in clipboard) (one can see what kind of nodes are the others!)
     - TopicData
         - topic data should include "unsuscribe" and info about suscribers
 
-    - gossip channels                            <
+    ------------------------------------------------------------------------------------
+    Server
+    - gossip channels
         - POST to server (server suscribes)
             - limit of threads? i need to open a DataStore for each topic?
     ------------------------------------------------------------------------------------
     WEB3:
-        - WAGMI? -> firmar el nodo libp2p para verificar en server -> access control
+        - firmar el nodo libp2p para verificar en server <
+        - access control ?
 
 
     ------------------------------------------------------------------------------------
