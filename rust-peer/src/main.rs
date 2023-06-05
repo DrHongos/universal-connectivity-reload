@@ -1,5 +1,6 @@
 pub mod constants;
 
+use actix_cors::Cors;
 use anyhow::{Context, Result};
 //use clap::Parser;
 use futures::future::{select, Either};
@@ -240,7 +241,9 @@ async fn main() -> Result<()> {
     tokio::spawn(pubsub_client(swarm, app_data_init.clone()));
 
     HttpServer::new(move || {
+        let cors = Cors::permissive();
         App::new()
+            .wrap(cors)
             .app_data(app_data_init.clone())
             .service(hello)
             //.service(echo)

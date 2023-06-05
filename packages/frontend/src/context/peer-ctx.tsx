@@ -43,41 +43,36 @@ export const PeerProvider = ({ children }: { children: ReactNode }) => {
 	const [rustNodeMultiaddr, setRustNodeMultiaddr] = useState<string[] | null>();
 
 	useEffect(() => {
-/* 		async function get_rust_node_multiaddr() {
-			fetch("http://localhost:8080/", {					// p*to CORS!
-//					headers: {
-//						'Access-Control-Allow-Origin': '*',
-//					}	
-					mode: "no-cors"	// opaque response
-				})
+		async function get_rust_node_multiaddr() {
+			fetch("http://localhost:8080/", {})
 				.then(response => response.text())	// nothing.. futile
 				.then(data => {
-				// Parse the plain text here
 					console.log(data);
+					let data_p = data.split(",");
+					if (data_p.length > 0) {
+						console.log(`setting rust node addresses ${data_p}`)
+						setRustNodeMultiaddr(data_p)			
+					}
 				})
 				.catch(error => {
-				// Handle any errors
 				console.error('Error:', error);
 				});
-			//res_p = res_p.split(", ");
-			//if (res_p.length > 0) {
-			//	console.log(`setting rust node addresses ${res_p}`)
-			//	setRustNodeMultiaddr(res_p)			
-			//}
 		}
-*/
 		// query the server,
 		console.log("performing query")
 		// filter response
 		// dial the correct one
 		if (!rustNodeMultiaddr) {
-//			get_rust_node_multiaddr()
-			let response_faked = "/ip4/127.0.0.1/udp/9090/webrtc-direct/certhash/uEiBpsYayXhcHojJRhUzvWydJKgIVidBaMfcZuGuUXucZWw/p2p/12D3KooWLi34cWMCHtKefYtcrPgG2Q5ywofQbpd6jCijgF84cFLo,/ip4/192.168.0.14/udp/9090/webrtc-direct/certhash/uEiBpsYayXhcHojJRhUzvWydJKgIVidBaMfcZuGuUXucZWw/p2p/12D3KooWLi34cWMCHtKefYtcrPgG2Q5ywofQbpd6jCijgF84cFLo,/ip4/172.17.0.1/udp/9090/webrtc-direct/certhash/uEiBpsYayXhcHojJRhUzvWydJKgIVidBaMfcZuGuUXucZWw/p2p/12D3KooWLi34cWMCHtKefYtcrPgG2Q5ywofQbpd6jCijgF84cFLo,/ip4/127.0.0.1/udp/9091/quic-v1/p2p/12D3KooWLi34cWMCHtKefYtcrPgG2Q5ywofQbpd6jCijgF84cFLo,/ip4/192.168.0.14/udp/9091/quic-v1/p2p/12D3KooWLi34cWMCHtKefYtcrPgG2Q5ywofQbpd6jCijgF84cFLo,/ip4/172.17.0.1/udp/9091/quic-v1/p2p/12D3KooWLi34cWMCHtKefYtcrPgG2Q5ywofQbpd6jCijgF84cFLo"
-			let listening_addresses = response_faked.split(",")
-			console.log(`dialing ${listening_addresses[2]}`)
-			let multiaddre = multiaddr(listening_addresses[2])
-			libp2p.dial(multiaddre)
-			setRustNodeMultiaddr(listening_addresses)
+			get_rust_node_multiaddr()
+		} else {
+			// check if we are already connected
+			let correct_multiaddr = rustNodeMultiaddr[2]; //CAREFUL
+
+			if (peerStats.peerIds.length === 0) {				
+				// else dial()
+				let multiaddre = multiaddr(correct_multiaddr)
+				libp2p.dial(multiaddre)
+			}
 		}
 	}, [rustNodeMultiaddr])
 
