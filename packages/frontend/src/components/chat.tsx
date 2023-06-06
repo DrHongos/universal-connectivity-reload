@@ -65,13 +65,14 @@ export default function ChatContainer({topic}: ChatProps) {
         setMessageHistory([...messageHistory, { msg, from: 'other', peerId: evt.detail.from.toString(), topic: evt.detail.topic }])
       }
     }
-
+    //@ts-ignore: conditionally rendered
     libp2p.services.pubsub.addEventListener('message', messageCB)
 
     return () => {
       // Cleanup handlers 👇
       // libp2p.services.pubsub.unsubscribe(CHAT_TOPIC)
-      libp2p.services.pubsub.removeEventListener('message', messageCB)
+        //@ts-ignore: conditionally rendered
+        libp2p.services.pubsub.removeEventListener('message', messageCB)
     }
   }, [libp2p, messageHistory, setMessageHistory])
 
@@ -80,16 +81,18 @@ export default function ChatContainer({topic}: ChatProps) {
 
     console.log(
       'peers in gossip:',
-      libp2p.services.pubsub.getSubscribers(topic).toString(),
+        //@ts-ignore: conditionally rendered
+        libp2p.services.pubsub.getSubscribers(topic).toString(),
     )
 
+    //@ts-ignore: conditionally rendered
     const res = await libp2p.services.pubsub.publish(
       topic,
       new TextEncoder().encode(input),
     )
     console.log(
       'sent message to: ',
-      res.recipients.map((peerId) => peerId.toString()),
+      res.recipients.map((peerId: any) => peerId.toString()),
     )
 
     const myPeerId = libp2p.peerId.toString()

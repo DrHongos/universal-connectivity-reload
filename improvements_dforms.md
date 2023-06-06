@@ -20,19 +20,6 @@
             - validar en server: 
                 Public Message: At [datetime] the node [peerId] was validated as [account]
 
-bumped libp2p and other dependencies
-    - no hay relayer activado, FIXME
-    - needs to ts-ignore a lot of conditioned stuff in components
-
-    BUG BUG    BUG BUG    BUG BUG    BUG BUG    BUG BUG    BUG BUG
-        helia uses ipfs-bitswap that inside implements 
-            "@libp2p/interface-libp2p": "^3.1.0",
-            helia uses "^3.2.0"
-                that changes considerable the Libp2p type !
-            - try to check if it works (it breaks)
-            - bump ipfs-bitswap dependency (locally (try again))
-    BUG BUG    BUG BUG    BUG BUG    BUG BUG    BUG BUG    BUG BUG
-
 
     - firmar el nodo libp2p para verificar en server
         https://wagmi.sh/react/hooks/useSignMessage

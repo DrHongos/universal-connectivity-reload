@@ -6,24 +6,31 @@ import { multiaddr } from '@multiformats/multiaddr'
 import { connectToMultiaddr } from '../lib/libp2p'
 import PeerInfo from "./peerInfo"
 import type { Connection } from '@libp2p/interface-connection'
+import { useListenAddressesContext } from '@/context/listen-addresses-ctx'
 
 function PeerControl() {
     const { libp2p } = useLibp2pContext()
     const { peerStats, setPeerStats } = usePeerContext()
+    const { listenAddresses, setListenAddresses } = useListenAddressesContext()
     const [maddr, setMultiaddr] = useState('')
     const [peersListOpen, setPeersListOpen] = useState<boolean>(false)
     const [manuallySet, setManuallySet] = useState<boolean>(false)
 
     useEffect(() => {
-        const peerConnectedCB = (evt: any) => {
-          const connection = evt.detail
-          setPeerStats({ ...peerStats, peerIds: [...peerStats.peerIds, connection.remotePeer], connections: [...peerStats.connections, connection], connected: true })
-        }
-    
-        libp2p.addEventListener('peer:connect', peerConnectedCB)    
+      const interval = setInterval(() => {
+        const connections = libp2p.getConnections()
+        setPeerStats({
+          ...peerStats,
+          peerIds: connections.map(conn => conn.remotePeer),
+          connections: connections,
+          connected: true
+        })
+      })
+      //  libp2p.addEventListener('peer:connect', peerConnectedCB)    
         return () => {
-          libp2p.removeEventListener('peer:connect', peerConnectedCB)
-        }
+//          libp2p.removeEventListener('peer:connect', peerConnectedCB)
+        clearInterval(interval)   
+      }
     }, [libp2p, peerStats, setPeerStats])
 
     const handleConnectToMultiaddr = useCallback(
@@ -34,7 +41,7 @@ function PeerControl() {
 
             try {
             const connection = await connectToMultiaddr(libp2p)(multiaddr(maddr))
-            console.log('connection: ', connection)
+            //console.log('connection: ', connection)
 
             return connection
             } catch (e) {
@@ -44,21 +51,36 @@ function PeerControl() {
         [libp2p, maddr],
     )
 
+    useEffect(() => {
+      const interval = setInterval(() => {
+        const multiaddrs = libp2p.getMultiaddrs()
+  
+        setListenAddresses({
+          ...listenAddresses,
+          multiaddrs
+        })
+      }, 1000)
+  
+      return () => {
+        clearInterval(interval)
+      }
+    }, [libp2p, listenAddresses, setListenAddresses])
+  
     const getFormattedConnections = (connections: Connection[]): PeerProtoTuple[] => {
         const protoNames: Map<string, string[]> = new Map()
     
         connections.forEach((conn) => {
-//          console.log(`connection ${conn}`)
-          const exists = protoNames.get(conn.toString())
-          const dedupedProtonames = [...new Set(conn.toString())]
+//          console.log(`connection ${JSON.stringify(conn)}`)
+          const exists = protoNames.get(conn.remotePeer.toString())
+          const dedupedProtonames = [...new Set(conn.remotePeer.toString())]
     
           if (exists?.length) {
             const namesToAdd = dedupedProtonames.filter((name) => !exists.includes(name))
             // console.log('namesToAdd: ', namesToAdd)
-            protoNames.set(conn.toString(), [...exists, ...namesToAdd])
+            protoNames.set(conn.remotePeer.toString(), [...exists, ...namesToAdd])
     
           } else {
-            protoNames.set(conn.toString(), dedupedProtonames)
+            protoNames.set(conn.remotePeer.toString(), dedupedProtonames)
           }
         })
     
@@ -68,7 +90,15 @@ function PeerControl() {
         }))
     
     }
-    
+/*     
+    useEffect(() => {
+      getFormattedConnections(peerStats.connections)
+      .map(
+        (pair) =>
+          console.log(`peer ${JSON.stringify(pair)}`)                            
+      )
+    },[])
+ */
     const handleMultiaddrChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
         setMultiaddr(e.target.value)
