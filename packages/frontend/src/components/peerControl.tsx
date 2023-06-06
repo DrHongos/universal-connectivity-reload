@@ -48,16 +48,17 @@ function PeerControl() {
         const protoNames: Map<string, string[]> = new Map()
     
         connections.forEach((conn) => {
-          const exists = protoNames.get(conn.remotePeer.toString())
-          const dedupedProtonames = [...new Set(conn.remoteAddr.protoNames())]
+//          console.log(`connection ${conn}`)
+          const exists = protoNames.get(conn.toString())
+          const dedupedProtonames = [...new Set(conn.toString())]
     
           if (exists?.length) {
             const namesToAdd = dedupedProtonames.filter((name) => !exists.includes(name))
             // console.log('namesToAdd: ', namesToAdd)
-            protoNames.set(conn.remotePeer.toString(), [...exists, ...namesToAdd])
+            protoNames.set(conn.toString(), [...exists, ...namesToAdd])
     
           } else {
-            protoNames.set(conn.remotePeer.toString(), dedupedProtonames)
+            protoNames.set(conn.toString(), dedupedProtonames)
           }
         })
     

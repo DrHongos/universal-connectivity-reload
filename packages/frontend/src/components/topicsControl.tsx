@@ -16,7 +16,7 @@ function TopicsControl({topicSelected, setTopicSelected}: TopicsControlProps) {
     }, [])
 
     const updateTopics = () => {
-        let topics = libp2p.pubsub.getTopics()
+        let topics = libp2p.services.pubsub.getTopics()
         if (topics != topicsList) {
           setTopicsList(topics)
         }
@@ -30,7 +30,7 @@ function TopicsControl({topicSelected, setTopicSelected}: TopicsControlProps) {
     )
     const suscribeToTopic = () => {
         if (topicToSuscribe) {
-          libp2p.pubsub.subscribe(topicToSuscribe)
+          libp2p.services.pubsub.subscribe(topicToSuscribe)
           updateTopics()
           setTopicToSuscribe(null)
         }
@@ -48,6 +48,7 @@ function TopicsControl({topicSelected, setTopicSelected}: TopicsControlProps) {
             <ul>
             {topicsList.length > 0 && topicsList.map((d) => 
                 <li
+                key={d}
                 style={{
                     backgroundColor: d == topicSelected ? "lightgreen" : "white",
                     border: d == topicSelected ? "darkgreen" : "lightgray",
@@ -59,7 +60,7 @@ function TopicsControl({topicSelected, setTopicSelected}: TopicsControlProps) {
                 >
                 {d}{' '}
                 -{' '}
-                ({libp2p.pubsub.getSubscribers(d).length/* does not update */})
+                ({libp2p.services.pubsub.getSubscribers(d).length/* does not update */})
                 </li>
             )}
             </ul>

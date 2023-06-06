@@ -43,7 +43,7 @@ use constants::{
 };
 
 struct AppState {
-    peer_multiaddr: Mutex<Vec<String>>, // probably should be Mutex (Vec<String>)
+    peer_multiaddr: Mutex<Vec<String>>, // probably should be the swarm
 }
 
 #[derive(Serialize)]

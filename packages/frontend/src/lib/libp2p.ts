@@ -27,12 +27,12 @@ export async function startLibp2p() {
   const libp2p = await createLibp2p({
     // set the inbound and outbound stream limits to these values
     // because we were seeing a lot of the default limits being hit
-    dht: kadDHT({
-      protocolPrefix: "/universal-connectivity",
-      maxInboundStreams: 5000,
-      maxOutboundStreams: 5000,
-      clientMode: true
-    }),
+//    dht: kadDHT({
+//      protocolPrefix: "/universal-connectivity",
+//      maxInboundStreams: 5000,
+//      maxOutboundStreams: 5000,
+//      clientMode: true
+//    }),
     transports: [webTransport(), webSockets({
       filter: filters.all,
     }), webRTC({
@@ -59,31 +59,35 @@ export async function startLibp2p() {
         ],
       }),
     ],
-    pubsub: gossipsub({
-      allowPublishToZeroPeers: true,
-      msgIdFn: msgIdFnStrictNoSign,
-      ignoreDuplicatePublishError: true,
-    }),
-    identify: {
-      // these are set because we were seeing a lot of identify and identify push
-      // stream limits being hit
-      maxPushOutgoingStreams: 1000,
-      maxPushIncomingStreams: 1000,
-      maxInboundStreams: 1000,
-      maxOutboundStreams: 1000,
+    services: {                     // added, work to bump this Libp2p implementation
+      pubsub: gossipsub({
+        allowPublishToZeroPeers: true,
+        msgIdFn: msgIdFnStrictNoSign,
+        ignoreDuplicatePublishError: true,
+      }),
+//      identify: {
+//        // these are set because we were seeing a lot of identify and identify push
+//        // stream limits being hit
+//        maxPushOutgoingStreams: 1000,
+//        maxPushIncomingStreams: 1000,
+//        maxInboundStreams: 1000,
+//        maxOutboundStreams: 1000,
+//      },
     },
-    autonat: {
-      startupDelay: 60 * 60 * 24 * 1000,
-    },
+//    autonat: {
+//      startupDelay: 60 * 60 * 24 * 1000,
+//    },
   })
 
-  libp2p.pubsub.subscribe(CHAT_TOPIC)
-
-  libp2p.peerStore.addEventListener('change:multiaddrs', ({detail: {peerId, multiaddrs}}) => {
-
-//    console.log(`changed multiaddrs: peer ${peerId.toString()} multiaddrs: ${multiaddrs}`)
-    setWebRTCRelayAddress(multiaddrs, libp2p.peerId.toString())
-  })
+  libp2p.services.pubsub.subscribe(CHAT_TOPIC)
+// relayer
+//  for (const peer of await libp2p.peerStore.all()) {
+     // ...
+//     libp2p.services.pubsub.addEventListener('change:multiaddrs', ({detail: {peerId, multiaddrs}}) => {
+//       console.log(`changed multiaddrs: peer ${peerId.toString()} multiaddrs: ${multiaddrs}`)
+//       setWebRTCRelayAddress(multiaddrs, libp2p.peerId.toString())
+//     })
+ // }
 
   return libp2p
 }

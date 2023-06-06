@@ -66,12 +66,12 @@ export default function ChatContainer({topic}: ChatProps) {
       }
     }
 
-    libp2p.pubsub.addEventListener('message', messageCB)
+    libp2p.services.pubsub.addEventListener('message', messageCB)
 
     return () => {
       // Cleanup handlers 👇
-      // libp2p.pubsub.unsubscribe(CHAT_TOPIC)
-      libp2p.pubsub.removeEventListener('message', messageCB)
+      // libp2p.services.pubsub.unsubscribe(CHAT_TOPIC)
+      libp2p.services.pubsub.removeEventListener('message', messageCB)
     }
   }, [libp2p, messageHistory, setMessageHistory])
 
@@ -80,10 +80,10 @@ export default function ChatContainer({topic}: ChatProps) {
 
     console.log(
       'peers in gossip:',
-      libp2p.pubsub.getSubscribers(topic).toString(),
+      libp2p.services.pubsub.getSubscribers(topic).toString(),
     )
 
-    const res = await libp2p.pubsub.publish(
+    const res = await libp2p.services.pubsub.publish(
       topic,
       new TextEncoder().encode(input),
     )
