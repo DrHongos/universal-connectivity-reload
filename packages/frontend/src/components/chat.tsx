@@ -1,10 +1,8 @@
 import { useLibp2pContext } from '@/context/ctx'
 import React, { useCallback, useEffect, useState } from 'react'
 import { Message } from '@libp2p/interface-pubsub'
-//import { CHAT_TOPIC } from '@/lib/constants'
 import { createIcon } from '@download/blockies'
 import { ChatMessage, useChatContext } from '../context/chat-ctx'
-
 
 interface MessageProps extends ChatMessage { }
 
@@ -51,6 +49,13 @@ export default function ChatContainer({topic}: ChatProps) {
   const { messageHistory, setMessageHistory } = useChatContext();
   const [input, setInput] = useState<string>('')
   
+  useEffect(() => {
+    let myList = document.getElementById("chat-list")
+    if (myList) {
+      myList.scrollTop = myList.scrollHeight;
+    }
+  }, [messageHistory])
+
   // Effect hook to subscribe to pubsub events and update the message state hook
   useEffect(() => {
     const messageCB = (evt: CustomEvent<Message>) => {
@@ -131,20 +136,12 @@ export default function ChatContainer({topic}: ChatProps) {
         {/* <RoomList /> */}
         <div className="lg:col-span-3 lg:block">
           <div className="w-full">
-            <div className="relative flex items-center p-3 border-b border-gray-300">
-              {/* disable
-              <img
-                className="object-cover w-10 h-10 rounded-full"
-                src="https://github.com/achingbrain.png"
-                alt="username"
-              />
-              <span className="absolute w-3 h-3 bg-green-600 rounded-full left-10 top-3"></span> */}
-              <span className="text-3xl">💁🏽‍♀️💁🏿‍♂️</span>
+            <div className="relative flex items-center p-3 border-b border-gray-300">              
               <span className="block ml-2 font-bold text-gray-600">
-                Public Chat
+                Chat
               </span>
             </div>
-            <div className="relative w-full p-6 overflow-y-auto h-[40rem] bg-gray-100">
+            <div className="relative w-full p-6 overflow-y-auto h-[40rem] bg-gray-100" id="chat-list"> 
               <ul className="space-y-2">
                 {/* messages start */}
                 {messageHistory.map(({ msg, from, peerId, topic }, idx) => (

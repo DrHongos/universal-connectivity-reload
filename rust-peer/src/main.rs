@@ -1,4 +1,5 @@
 pub mod constants;
+pub mod validations;
 
 use actix_cors::Cors;
 use anyhow::{Context, Result};
@@ -27,7 +28,7 @@ use std::{
     borrow::Cow,
     collections::hash_map::DefaultHasher,
     hash::{Hash, Hasher},
-    time::{Duration/* , Instant */},
+    time::{Duration, Instant},
     sync::Mutex
 };
 use serde::Serialize;
@@ -41,6 +42,7 @@ use constants::{
     LOCAL_KEY_PATH,
     LOCAL_CERT_PATH
 };
+use validations::validate_account;
 
 struct AppState {
     peer_multiaddr: Mutex<Vec<String>>, // probably should be the swarm
@@ -61,7 +63,7 @@ async fn hello(data: web::Data<AppState>) -> impl Responder {
 
 async fn pubsub_client(mut swarm: Swarm<Behaviour>, data: web::Data<AppState>) -> Result<()> {
     let mut tick = futures_timer::Delay::new(TICK_INTERVAL);    // here? or in thread?
-//    let now = Instant::now();
+    let now = Instant::now();
     loop {
         match select(swarm.next(), &mut tick).await {
             Either::Left((event, _)) => match event.unwrap() {
@@ -93,11 +95,45 @@ async fn pubsub_client(mut swarm: Swarm<Behaviour>, data: web::Data<AppState>) -
                         message,
                     },
                 )) => {
+                    let msg_p = String::from_utf8(message.data).expect("Error in message format");
                     info!(
                         "Received message from {:?}: {}",
                         message.source,
-                        String::from_utf8(message.data).unwrap()
+                        msg_p.clone()
                     );
+                    let command = msg_p.split_whitespace().next().expect(" ");
+                    let message_p = match command {
+                        "/test" => Some(format!(
+                            "Hello! this is an experimental service rust-peer, see more at '/help': {:4}s",
+                            now.elapsed().as_secs_f64()
+                        )),
+                        "/iloveyou" => Some(format!(
+                            "I love you too! (at {:4}s)",
+                            now.elapsed().as_secs_f64()
+                        )),
+                        "/validate" => {
+                            validate_account(msg_p)?; // match
+                            Some(format!(
+                                "To validate, send an account and a signed msg (WIP) (at {:4}s)",
+                                now.elapsed().as_secs_f64()
+                            ))
+                        },
+                        "/help" => Some(format!(
+                            "Send commands to pubsub and interact with agents!
+                            /test: message
+                            /validate: perform checks on messages
+                            /help: this message
+                            \n(at {:4}s)",
+                            now.elapsed().as_secs_f64()
+                        )),
+                        _ => None
+                    };
+                    if let Some(msg) = message_p {
+                        swarm.behaviour_mut().gossipsub.publish(
+                            gossipsub::IdentTopic::new("universal-connectivity"),
+                            msg.as_bytes(),
+                        )?;
+                    }                        
                 }
                 SwarmEvent::Behaviour(BehaviourEvent::Gossipsub(
                     libp2p::gossipsub::Event::Subscribed { peer_id, topic },

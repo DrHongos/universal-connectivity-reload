@@ -9,16 +9,15 @@
         - share files in chat
             - give tools for perpetual storage
             - try to upload a file (unixfs?) with   (can be done locally too)
-                financial_data_cid/asset_exchange_period_cid
+                financial_data_cid/asset/exchange/period_cid
                 --> for retrieval as dataframe and apply lazy operations (polars)
 
 
-        jugar un ratito con implementar Helia, pero el OBJETIVO de hoy es implementar al menos un servicio en el rust-peer
-        - validar user account 
-            - firmar mensaje en frontend y enviar mensaje:
-                .publish(`/valAccount ${account} ${signedMessage}`)
-            - validar en server: 
-                Public Message: At [datetime] the node [peerId] was validated as [account]
+    - validar user account 
+        - firmar mensaje en frontend y enviar mensaje:
+            .publish(`/valAccount ${account} ${signedMessage}`)
+        - validar en server: 
+            Public Message: At [datetime] the node [peerId] was validated as [account]
 
 
     - firmar el nodo libp2p para verificar en server
