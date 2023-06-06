@@ -2,26 +2,49 @@ import { useSignMessage } from 'wagmi'
 import { useAccount } from 'wagmi';
 import { useLibp2pContext } from '@/context/ctx';
 import { CHAT_TOPIC } from '@/lib/constants';
+import { useEffect, useState } from 'react';
 
 function ValidateAccount() {
     const { libp2p } = useLibp2pContext()
     const { address } = useAccount()
-    let now_timestamp = () => Math.floor(Date.now()/ 1000)
+    const [items, setItems] = useState<string[]>([])
 
-    let message_items = [libp2p.peerId.toString(), address, now_timestamp()]
     const { data, isError, isLoading, isSuccess, signMessage } = useSignMessage({
-        message: message_items.join("-"),
+        message: items.join("-"),
     })
-    
-    // needs to publish a message!
-    async function sendValidation() {
-        await signMessage()
-        if (data) {
+
+    useEffect(() => {
+        async function send_msg() {
             await libp2p.services.pubsub.publish(
                 CHAT_TOPIC,
-                new TextEncoder().encode("/validate "+message_items.slice(1).join(" ")+" "+ data),
+                new TextEncoder().encode("/validate "+items.slice(1).join(" ")+" "+ data),
             )
+            setItems([])
         }
+        if(isSuccess && data) {
+            console.log("sending validation")
+            send_msg()
+        }
+    }, [isSuccess, data])
+
+    useEffect(() => {
+        async function send() {
+            await signMessage()
+        }
+        if(items.length == 3) {
+            send()
+        }
+    }, [items])
+
+    async function sendValidation() {
+        if(address) {
+            let val = Math.floor(Date.now()/ 1000)            
+            setItems([
+                libp2p.peerId.toString(),
+                address.toString(),
+                val.toString()
+            ])
+        }                
     }
 
     return (

@@ -28,7 +28,7 @@ use std::{
     borrow::Cow,
     collections::hash_map::DefaultHasher,
     hash::{Hash, Hasher},
-    time::{Duration, Instant},
+    time::{Duration},
     sync::Mutex
 };
 use serde::Serialize;
@@ -43,7 +43,7 @@ use constants::{
     LOCAL_CERT_PATH
 };
 use validations::validate_account;
-
+use chrono::{DateTime, Utc};
 struct AppState {
     peer_multiaddr: Mutex<Vec<String>>, // probably should be the swarm
 }
@@ -63,7 +63,8 @@ async fn hello(data: web::Data<AppState>) -> impl Responder {
 
 async fn pubsub_client(mut swarm: Swarm<Behaviour>, data: web::Data<AppState>) -> Result<()> {
     let mut tick = futures_timer::Delay::new(TICK_INTERVAL);    // here? or in thread?
-    let now = Instant::now();
+    let utc: DateTime<Utc> = Utc::now();
+    let datetime_s = utc.to_string();
     loop {
         match select(swarm.next(), &mut tick).await {
             Either::Left((event, _)) => match event.unwrap() {
@@ -104,27 +105,34 @@ async fn pubsub_client(mut swarm: Swarm<Behaviour>, data: web::Data<AppState>) -
                     let command = msg_p.split_whitespace().next().expect(" ");
                     let message_p = match command {
                         "/test" => Some(format!(
-                            "Hello! this is an experimental service rust-peer, see more at '/help': {:4}s",
-                            now.elapsed().as_secs_f64()
+                            "Hello! this is an experimental service rust-peer, see more at '/help': {}",
+                            datetime_s
                         )),
                         "/iloveyou" => Some(format!(
-                            "I love you too! (at {:4}s)",
-                            now.elapsed().as_secs_f64()
+                            "I love you too! (at {})",
+                            datetime_s
                         )),
                         "/validate" => {
-                            validate_account(msg_p)?; // match
-                            Some(format!(
-                                "To validate, send an account and a signed msg (WIP) (at {:4}s)",
-                                now.elapsed().as_secs_f64()
-                            ))
+                            let peer_id = message.source.expect("Error with peer Id").to_string();
+                            match validate_account(msg_p, peer_id.clone()) {
+                                Some(account) => Some(format!("I can confirm that the peerID:{} was handled by {} at {}", 
+                                    peer_id, 
+                                    account,
+                                    datetime_s
+                                )),
+                                _ => Some(format!(
+                                    "To validate, send an account and a signed msg (WIP) (at {})",
+                                    datetime_s
+                                ))
+                            }
                         },
                         "/help" => Some(format!(
                             "Send commands to pubsub and interact with agents!
                             /test: message
                             /validate: perform checks on messages
                             /help: this message
-                            \n(at {:4}s)",
-                            now.elapsed().as_secs_f64()
+                            \n(at {})",
+                            datetime_s
                         )),
                         _ => None
                     };
