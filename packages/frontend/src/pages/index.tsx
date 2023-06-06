@@ -8,6 +8,7 @@ import PeerControl from '@/components/peerControl'
 import TopicsControl from '@/components/topicsControl'
 import { CHAT_TOPIC } from '@/lib/constants'
 import Account from '@/components/account'
+import ValidateAccount from '@/components/validateButton'
 
 export default function Home() {
   const { libp2p } = useLibp2pContext()
@@ -41,7 +42,7 @@ export default function Home() {
                   topicSelected={topicSelected}
                   setTopicSelected={setTopicSelected}
                 />
-
+                <ValidateAccount />
                 <Image
                   src="/libp2p-hero.svg"
                   alt="libp2p logo"

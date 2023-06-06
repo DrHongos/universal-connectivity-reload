@@ -20,7 +20,7 @@
             Public Message: At [datetime] the node [peerId] was validated as [account]
 
 
-    - firmar el nodo libp2p para verificar en server
+    - firmar el peerId libp2p para verificar en server        
         https://wagmi.sh/react/hooks/useSignMessage
 
     ------------------------------------------------------------------------------------
