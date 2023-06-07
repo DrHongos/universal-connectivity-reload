@@ -9,6 +9,7 @@ import TopicsControl from '@/components/topicsControl'
 import { CHAT_TOPIC } from '@/lib/constants'
 import Account from '@/components/account'
 import ValidateAccount from '@/components/validateButton'
+import UserPanel from '@/components/userPanel'
 
 export default function Home() {
   const { libp2p } = useLibp2pContext()
@@ -28,21 +29,36 @@ export default function Home() {
             <div style={{display: "flex"}}>
               <div style={{width: '60%'}}>
               <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                <Account />
-                <h3 className="text-xl">
-                  {' '}
-                  Your node
-                </h3>
-                <PeerInfo
-                  peerId={libp2p.peerId.toString()}
-                  protocols={[]}
-                />
-                <PeerControl />
-                <TopicsControl
-                  topicSelected={topicSelected}
-                  setTopicSelected={setTopicSelected}
-                />
-                <ValidateAccount />
+                <div style={{
+                  border: "1px solid gray",
+                  padding: "10px",
+                  borderRadius: "10px"
+                }}>
+                  <Account />
+                  <ValidateAccount />
+                </div>
+
+                <div style={{
+                  border: "1px solid gray",
+                  padding: "10px",
+                  borderRadius: "10px"
+                }}>
+                  <h3 className="text-xl">
+                    {' '}
+                    Your node
+                  </h3>
+                  <PeerInfo
+                    peerId={libp2p.peerId.toString()}
+                    protocols={[]}
+                  />
+                  <PeerControl />
+                  <TopicsControl
+                    topicSelected={topicSelected}
+                    setTopicSelected={setTopicSelected}
+                  />
+                </div>
+
+                <UserPanel />
                 <Image
                   src="/libp2p-hero.svg"
                   alt="libp2p logo"
