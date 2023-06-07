@@ -115,7 +115,7 @@ async fn pubsub_client(mut swarm: Swarm<Behaviour>, data: web::Data<AppState>) -
                         "/validate" => {
                             let peer_id = message.source.expect("Error with peer Id").to_string();
                             match validate_account(msg_p, peer_id.clone()) {
-                                Some(account) => Some(format!("I can confirm that the peerID:{} was handled by {} at {}", 
+                                Ok(account) => Some(format!("I can confirm that the peerID:{} was handled by {} at {}", 
                                     peer_id, 
                                     account,
                                     datetime_s
