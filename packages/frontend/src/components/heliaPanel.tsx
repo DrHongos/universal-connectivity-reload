@@ -2,13 +2,19 @@ import { useState, ChangeEvent } from "react";
 import { useUserInfoContext } from "@/context/user-ctx";
 import { json } from '@helia/json'
 import { useLibp2pContext } from "@/context/ctx";
-import { copyToClipboard } from "@/utils/helpers";
+import { copyToClipboard, short_text } from "@/utils/helpers";
+import Image from 'next/image'
+import { car } from '@helia/car'
+import { CarWriter } from '@ipld/car'
+import { CarBlockIterator } from '@ipld/car'
+import { type CID } from 'multiformats'
+import toIterable from 'stream-to-it'
 
-function UserPanel(/* {topicSelected, setTopicSelected}: TopicsControlProps */) {
+function HeliaPanel(/* {topicSelected, setTopicSelected}: TopicsControlProps */) {
     const { name, setName } = useUserInfoContext()
     const { helia, fs } = useLibp2pContext()
     const [nameTo, setNameTo] = useState<string>(name)
-    const [dataCid, setDataCid] = useState<string | undefined>()
+    const [dataCid, setDataCid] = useState<CID | undefined>()
     const [selectedFile, setSelectedFile] = useState<File | undefined>();
 
     const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -23,9 +29,8 @@ function UserPanel(/* {topicSelected, setTopicSelected}: TopicsControlProps */) 
                 name: nameTo 
             }
         )
-        setDataCid(cid.toString())
+        setDataCid(cid)
     }
-
     function readFileAsUint8Array(file: File): Promise<Uint8Array> {
         return new Promise((resolve, reject) => {
           const reader = new FileReader();
@@ -43,14 +48,43 @@ function UserPanel(/* {topicSelected, setTopicSelected}: TopicsControlProps */) 
           reader.readAsArrayBuffer(file);
         });
       }
-        
+
+    async function importCar() {
+        if(selectedFile) {
+            const inStream = selectedFile.stream()
+            const CarIterator = await CarBlockIterator.fromIterable(toIterable.source(inStream))
+            for await (const { cid, bytes } of CarIterator) {
+              // add blocks to helia to ensure they are available while navigating children
+              await helia.blockstore.put(cid, bytes)
+            }
+            const cidRoots = await CarIterator.getRoots()
+            let cidB = cidRoots[0]
+            console.log(`cid: ${cidB}`)
+            setDataCid(cidB)
+            let carB = helia.blockstore.get(cidB)
+            console.log(`car: ${JSON.stringify(carB)}`)
+            
+            
+        }
+    }
+
     async function loadFile() {
         if(selectedFile) {
             readFileAsUint8Array(selectedFile)
                 .then(async(uint8Array) => {
                     const cid = await fs.addBytes(uint8Array)
                     console.log(`${selectedFile?.name} loaded in CID: ${cid}`)
-                    setDataCid(cid.toString())
+                    setDataCid(cid)
+                    // try to create CAR
+                    const { writer, out } = CarWriter.create(cid)
+                    let blocks = await helia.blockstore.getAll()
+                    console.log(`blocks ${JSON.stringify(blocks)}`)
+//                    for (const block of blocks) {
+//                      writer.put(block)
+//                    }
+//                    writer.close()
+//                    console.log(`CAR? ${JSON.stringify(out)}`)
+            
                 })
                 .catch((error) => {
                     console.error(error);
@@ -65,11 +99,26 @@ function UserPanel(/* {topicSelected, setTopicSelected}: TopicsControlProps */) 
         <div
             style={{border: "1px solid gray", padding: "10px", borderRadius: "10px"}}
         >
-            <h3 className="text-xl">
-            {' '}
-            Your info
-            </h3>
-            <hr style={{marginBottom: "15px"}}></hr>
+            <div style={{
+                width:"100%",
+                display: "flex",
+                justifyContent: "space-between"
+            }}>
+
+                <h3 className="text-xl">
+                {' '}
+                Helia (IPFS)
+                </h3>
+                <Image
+                    src="/helia.png"
+                    alt="helia logo"
+                    height="40"
+                    width="40"
+                    style={{margin: "auto", marginRight: "5px"}}
+                />
+            </div>
+{/*
+             <hr style={{marginBottom: "15px"}}></hr>
             <input 
                 style={{
                     borderRadius: "10px",
@@ -87,16 +136,19 @@ function UserPanel(/* {topicSelected, setTopicSelected}: TopicsControlProps */) 
             >
             {nameTo.length > 0 && nameTo != name ? "Edit!" : "Change your information"}
             </button>
+             */}
             <hr />
             {dataCid &&
-                <div>
-                    {dataCid}
+                <div style={{display: "flex", justifyContent: "space-between"}}>
+                    {short_text(dataCid.toString())}
                     <button
-                        onClick={() => copyToClipboard(dataCid)}
+                        onClick={() => copyToClipboard(dataCid.toString())}
                     >Copy</button>
+
                 </div>
             }
             <hr />
+            {/* send to component */}
             <h3>Load file</h3>
             <input type="file" onChange={handleFileChange} />
             {selectedFile && (
@@ -118,4 +170,4 @@ function UserPanel(/* {topicSelected, setTopicSelected}: TopicsControlProps */) 
     )
 }
 
-export default UserPanel;
+export default HeliaPanel;

@@ -13,8 +13,9 @@ import { UserProvider } from './user-ctx';
 import { ListenAddressesProvider } from './listen-addresses-ctx';
 import { PubSub } from '@libp2p/interface-pubsub';
 import { createHelia } from 'helia';
-import { unixfs, UnixFS } from '@helia/unixfs'
+import { unixfs, UnixFS } from '@helia/unixfs';
 import type { Helia } from '@helia/interface';
+
 // 👇 The context type will be avilable "anywhere" in the app
 interface Libp2pContextInterface {
   libp2p: Libp2p<{pubsub: PubSub}>,

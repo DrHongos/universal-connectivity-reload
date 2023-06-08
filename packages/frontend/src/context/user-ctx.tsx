@@ -2,12 +2,8 @@
 //import { Address } from 'wagmi';
 import React, { createContext, useContext, useState } from 'react';
 import { useLibp2pContext } from './ctx';
-/* 
-Some HELIA stuff
-- use keychain to create a local implementation of user
-    - then read it on load
--- based on account, put that information in gossipsub (and retrieve from other users)
 
+/* 
 another idea?:
 {
     signature: {

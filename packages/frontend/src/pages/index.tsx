@@ -9,12 +9,12 @@ import TopicsControl from '@/components/topicsControl'
 import { CHAT_TOPIC } from '@/lib/constants'
 import Account from '@/components/account'
 import ValidateAccount from '@/components/validateButton'
-import UserPanel from '@/components/userPanel'
+import HeliaPanel from '@/components/heliaPanel'
 
 export default function Home() {
   const { libp2p } = useLibp2pContext()
   const [topicSelected, setTopicSelected] = useState<string>(CHAT_TOPIC)
-
+  const [tool, setTool] = useState<string>("chat")
   return (
     <>
       <Head>
@@ -43,36 +43,49 @@ export default function Home() {
                   padding: "10px",
                   borderRadius: "10px"
                 }}>
-                  <h3 className="text-xl">
-                    {' '}
-                    Your node
-                  </h3>
+                  <div style={{
+                    width:"100%",
+                    display: "flex",
+                    justifyContent: "space-between"
+                  }}>
+                    <h3 className="text-xl">
+                      {' '}
+                      Libp2p
+                    </h3>
+                    <Image
+                      src="/libp2p-hero.svg"
+                      alt="libp2p logo"
+                      height="40"
+                      width="40"
+                      style={{margin: "auto", marginRight: "5px"}}
+                    />
+                  </div>
                   <PeerInfo
                     peerId={libp2p.peerId.toString()}
                     protocols={[]}
                   />
                   <PeerControl />
+                  <button
+                    onClick={() => {
+                      if(tool === "chat") setTool("")
+                      else setTool("chat")
+                    }}
+                  >CHAT</button>
                   <TopicsControl
                     topicSelected={topicSelected}
                     setTopicSelected={setTopicSelected}
                   />
                 </div>
-
-                <UserPanel />
-                <Image
-                  src="/libp2p-hero.svg"
-                  alt="libp2p logo"
-                  height="240"
-                  width="240"
-                  style={{margin: "auto", marginTop: "15px"}}
-                />
+                <HeliaPanel />
               </div>
 
               </div>
               <div style={{width: '70%'}}>
+              {tool === "chat" &&
                 <ChatContainer
                   topic={topicSelected}
                 />
+              }
               </div>
             </div>
           </main>
