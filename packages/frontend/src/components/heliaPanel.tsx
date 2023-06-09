@@ -16,7 +16,7 @@ function HeliaPanel(/* {topicSelected, setTopicSelected}: TopicsControlProps */)
     const [nameTo, setNameTo] = useState<string>(name)
     const [dataCid, setDataCid] = useState<CID | undefined>()
     const [selectedFile, setSelectedFile] = useState<File | undefined>();
-
+    const [carset, setCarset] = useState<any>()
     const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
       const file = event.target.files?.[0];
       setSelectedFile(file);
@@ -76,14 +76,24 @@ function HeliaPanel(/* {topicSelected, setTopicSelected}: TopicsControlProps */)
                     console.log(`${selectedFile?.name} loaded in CID: ${cid}`)
                     setDataCid(cid)
                     // try to create CAR
-                    const { writer, out } = CarWriter.create(cid)
-                    let blocks = await helia.blockstore.getAll()
-                    console.log(`blocks ${JSON.stringify(blocks)}`)
-//                    for (const block of blocks) {
-//                      writer.put(block)
-//                    }
-//                    writer.close()
-//                    console.log(`CAR? ${JSON.stringify(out)}`)
+                    if (await helia.blockstore.has(cid)) {
+                        const { writer, out } = CarWriter.create(cid)
+//                        let blocks = await helia.blockstore.get(cid)
+                        writer.put({
+                            cid: cid,
+                            bytes: uint8Array
+                        })
+                        writer.close()
+//                        console.log(`writer ${JSON.stringify(writer)}`)
+                        let c = car(helia)
+                        let carF = await c.export(cid, writer)
+                        console.log(`CAR? ${carF}`)
+
+                        setCarset(carF)
+                    } else {
+                        console.error("Helia does not have this CID")
+                    }
+                  
             
                 })
                 .catch((error) => {
